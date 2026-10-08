@@ -66,6 +66,7 @@ add_library(dingosdk_runtime SHARED
     Extension/Settings/console_commands.cpp
     Extension/Settings/job_spin.cpp
     Extension/Settings/engine_tweaks.cpp
+    Extension/Settings/graphics_tuning.cpp
     Extension/UI/ui_pointer_skip.cpp
     Extension/Settings/named_settings.cpp
     Extension/World/console_commands.cpp

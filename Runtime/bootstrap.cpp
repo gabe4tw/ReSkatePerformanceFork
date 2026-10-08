@@ -14,6 +14,7 @@
 #include "Extension/Assets/morph_memory_pool.h"
 #include "Extension/Assets/native_render_resource_pool.h"
 #include "Extension/Rendering/display_startup.h"
+#include "Extension/Settings/graphics_tuning.h"
 #include "Extension/World/native_route_lookahead.h"
 #include "Extension/World/unload_guard.h"
 #include "Extension/World/native_entity_pages.h"
@@ -62,6 +63,9 @@ bool initialize_bootstrap(std::uintptr_t base) {
     error.clear(); ready = start_unload_guard(base, error);
     (void)stage(Channel::world, "Level unload crash guard", ready, error);
     if (!stage(Channel::graphics, "Display startup settings", start_display_settings(base), {})) return false;
+    // Optional: without it, the saved performance settings still apply once the game runs.
+    error.clear(); ready = graphics_tuning::start_startup_settings(base, error);
+    stage(Channel::graphics, "Saved performance settings at startup", ready, error);
     error.clear(); ready = start_user_data_redirect(error);
     if (!stage(Channel::runtime, "Separate game user data", ready, error)) return false;
     error.clear(); ready = start_ea_app_block(error);
