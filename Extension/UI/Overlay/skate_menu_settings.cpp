@@ -74,6 +74,10 @@ void performance_page(SkateMenu& menu, const CallbacksV3& callbacks) {
 
     card("performance-smoothness", "SMOOTHNESS", "Against stutter.", gt::Group::smoothness);
     end_card();
+    card("performance-upscaling", "UPSCALING (FSR)", "Fine control on top of the game's FSR mode.", gt::Group::upscaling);
+    note("Pick the FSR mode itself (Quality to Ultra Performance) in the game's graphics menu. Resolution scale "
+         "works between those steps: Performance at 85% draws fewer pixels than Performance, more than Ultra Performance.");
+    end_card();
     card("performance-lighting", "LIGHTING AND SHADOWS", nullptr, gt::Group::lighting_shadows);
     end_card();
     card("performance-image", "IMAGE AND EFFECTS", nullptr, gt::Group::image_effects);

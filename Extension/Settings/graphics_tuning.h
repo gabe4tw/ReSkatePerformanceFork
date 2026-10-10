@@ -16,7 +16,7 @@
 namespace dingosdk::graphics_tuning {
 enum class Kind { toggle, slider };
 // Which menu card an option sits in (SETTINGS > PERFORMANCE, in this order).
-enum class Group { smoothness, lighting_shadows, image_effects, world, cpu };
+enum class Group { smoothness, upscaling, lighting_shadows, image_effects, world, cpu };
 
 struct Option {
     const char* key;   // saved as ReSkate.Perf.<key>
