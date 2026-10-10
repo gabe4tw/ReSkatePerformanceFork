@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <format>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace dingosdk::graphics_tuning {
@@ -20,8 +21,9 @@ namespace {
 // The order of this table is the order of the menu rows and of the Index enum below.
 enum Index : std::size_t {
     dynamic_resolution, shader_prime,
+    scale, reactive, reactive_strength,
     lighting, shadow, cascades, scatter_shadows,
-    scale, dof, bloom, ao, effects,
+    dof, bloom, ao, effects,
     vegetation, terrain_displacement,
     cloth_jobs, count
 };
@@ -44,6 +46,20 @@ constexpr std::array<Option, count> table{{
      "Builds the shaders the game has seen before during loading screens instead of mid-run. "
      "Fewer stutters, slightly longer loading. Takes full effect after a restart.",
      smoothness, Kind::toggle, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, nullptr, nullptr},
+    // Measured as a medium gain early on, but it softens the image; the preset leaves it to the player.
+    {"ResolutionScale", "Resolution scale",
+     "Draws fewer pixels and scales the picture up, on top of FSR. Faster but softer; 85-90% is a mild step.",
+     upscaling, Kind::slider, 100.0f, 100.0f, 100.0f, 50.0f, 100.0f, "%.0f%%", "%.0f%% (game default)"},
+    // FSR's reactive mask: marks particles and fast-moving bits so the upscaler does not smear them
+    // across frames. Image quality only; the preset leaves both alone until they are measured.
+    {"ReactiveMask", "Reduce trails",
+     "Stops sparks, particles and fast objects from leaving smeared trails behind them. Off may save a "
+     "little GPU time, but trails can come back.",
+     upscaling, Kind::toggle, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, nullptr, nullptr},
+    {"ReactiveStrength", "Trail reduction strength",
+     "How strongly moving and bright things are kept sharp. Higher means fewer trails but more shimmer on "
+     "them. Only matters while Reduce trails is on.",
+     upscaling, Kind::slider, 33.0f, 33.0f, 33.0f, 0.0f, 100.0f, "%.0f%%", "%.0f%% (game default)"},
     // At ~25 fps a 60/s throttle never triggers; 15/s measurably lowered CPU load (lighting still smooth).
     {"LightingRate", "Lighting updates",
      "How often bounced light is recalculated. Fewer updates free up the CPU; lighting may lag a moment "
@@ -58,10 +74,6 @@ constexpr std::array<Option, count> table{{
     {"ScatterShadows", "Shadows of small props",
      "Shadows from rocks, debris and similar small objects.",
      lighting_shadows, Kind::toggle, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, nullptr, nullptr},
-    // Measured as a medium gain early on, but it softens the image; the preset leaves it to the player.
-    {"ResolutionScale", "Resolution scale",
-     "Draws fewer pixels and scales the picture up, on top of FSR. Faster but softer; 85-90% is a mild step.",
-     image_effects, Kind::slider, 100.0f, 100.0f, 100.0f, 50.0f, 100.0f, "%.0f%%", "%.0f%% (game default)"},
     {"DepthOfField", "Depth of field", "Blur on things far away or very close to the camera.",
      image_effects, Kind::toggle, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, nullptr, nullptr},
     {"Bloom", "Bloom", "Glow around bright lights and the sky.",
@@ -80,6 +92,12 @@ constexpr std::array<Option, count> table{{
      cpu, Kind::slider, 32.0f, 32.0f, 4.0f, 1.0f, 32.0f, "%.0f", "%.0f (game default)"},
 }};
 
+// The table must stay in Index order: these catch a row added or moved in only one of the two.
+constexpr bool row_is(std::size_t index, std::string_view key) { return std::string_view(table[index].key) == key; }
+static_assert(row_is(scale, "ResolutionScale") && row_is(reactive, "ReactiveMask") &&
+              row_is(reactive_strength, "ReactiveStrength") && row_is(lighting, "LightingRate") &&
+              row_is(cloth_jobs, "ClothJobs"), "the options table is out of step with the Index enum");
+
 struct Write { const char* name; std::string value; };
 struct Writes { std::array<Write, 2> items; std::size_t size{}; };
 
@@ -95,6 +113,9 @@ Writes engine_writes(std::size_t index, float v) {
     // The scale only takes effect with the scaler enabled, so the scale is written first.
     case scale: return {{{{"DingoScalableRenderSettings.OutputResolutionScale", std::format("{:.2f}", v / 100.0f)},
                           {"DingoScalableRenderSettings.Enabled", "1"}}}, 2};
+    case reactive: return {{{{"WorldRender.TemporalUpsampleAutoReactiveEnable", "0"}}}, 1};
+    // The game's value is 0.3333; the slider is in whole percent.
+    case reactive_strength: return {{{{"WorldRender.TemporalUpsampleAutoReactiveScale", std::format("{:.2f}", v / 100.0f)}}}, 1};
     case dof: return {{{{"PostProcess.DofForegroundEnable", "0"}}}, 1};
     case bloom: return {{{{"PostProcess.BloomEnable", "0"}}}, 1};
     case ao: return {{{{"PostProcess.DynamicAOEnable", "0"}}}, 1};
